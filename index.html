@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MailNews — Mes briefings</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, sans-serif;
+      background: #0d1424;
+      color: #eef2ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 28px 18px; }
+    main { max-width: 780px; margin: auto; }
+    h1 { font-size: 36px; margin-bottom: 6px; }
+    h2 { font-size: 21px; margin-top: 0; }
+    p { line-height: 1.6; }
+    .muted { color: #b1bdd5; }
+    .badge {
+      display: inline-block;
+      padding: 7px 12px;
+      border-radius: 20px;
+      background: #283452;
+      font-size: 14px;
+    }
+    section {
+      background: #172238;
+      border: 1px solid #30405d;
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 22px;
+    }
+    label { display: block; margin: 17px 0 7px; }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #536482;
+      border-radius: 8px;
+      background: #0d1424;
+      color: #eef2ff;
+      font: inherit;
+    }
+    input[type="checkbox"] {
+      width: auto;
+      margin-right: 9px;
+      accent-color: #9aaeff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 18px;
+    }
+    button {
+      margin-top: 22px;
+      padding: 13px 20px;
+      border: 0;
+      border-radius: 9px;
+      background: #a4b5ff;
+      color: #10172a;
+      font: inherit;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #c0ccff; }
+    :focus-visible { outline: 3px solid #c0ccff; outline-offset: 3px; }
+    #message { min-height: 24px; color: #b8f3cf; }
+    footer { padding: 20px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="badge">Version initiale · Automatisation inactive</span>
+    <h1>📬 MailNews</h1>
+    <p class="muted">Tes briefings d’actualité, selon tes préférences.</p>
+  </header>
+
+  <section>
+    <h2>État du projet</h2>
+    <p>
+      Interface de configuration disponible.<br>
+      Collecte des actualités : <strong>non connectée</strong>.<br>
+      Envoi d’e-mails : <strong>non connecté</strong>.
+    </p>
+  </section>
+
+  <form id="settings">
+    <section>
+      <h2>Sujets à suivre</h2>
+      <label>
+        <input type="checkbox" id="economy" checked>
+        Économie française, européenne et internationale
+      </label>
+      <label>
+        <input type="checkbox" id="crypto" checked>
+        Cryptomonnaies
+      </label>
+      <label>
+        <input type="checkbox" id="companies" checked>
+        Grandes entreprises mondiales
+      </label>
+
+      <label for="keywords">Entreprises ou sujets particuliers</label>
+      <textarea id="keywords" rows="3"
+        placeholder="Exemple : Nvidia, Airbus, Bitcoin…"></textarea>
+
+      <label>
+        <input type="checkbox" id="english" checked>
+        Inclure les sources anglophones dans un briefing en français
+      </label>
+    </section>
+
+    <section>
+      <h2>Horaires souhaités</h2>
+      <p class="muted">
+        Économie et cryptomonnaies : tous les jours.
+        Horaires à confirmer, exprimés en heure de Paris.
+      </p>
+      <div class="grid">
+        <div>
+          <label for="morning">Briefing du matin</label>
+          <input type="time" id="morning" required>
+        </div>
+        <div>
+          <label for="evening">Briefing du soir</label>
+          <input type="time" id="evening" required>
+        </div>
+      </div>
+      <p class="muted">
+        Briefing entreprises : fréquence et horaire à confirmer
+        avant l’activation.
+      </p>
+    </section>
+
+    <section>
+      <h2>Enregistrer mes préférences</h2>
+      <p class="muted">
+        Cette version conserve les préférences uniquement dans ce
+        navigateur. Elles ne sont pas encore transmises à une automatisation.
+        Aucun mot de passe ni clé API n’est demandé.
+      </p>
+      <button type="submit">Enregistrer dans ce navigateur</button>
+      <p id="message" role="status"></p>
+    </section>
+  </form>
+
+  <footer class="muted">
+    MailNews · Interface personnelle en cours de construction.
+  </footer>
+</main>
+
+<script>
+  const storageKey = "mailnews.preferences.v1";
+  const fields = [
+    "economy", "crypto", "companies",
+    "keywords", "english", "morning", "evening"
+  ];
+  const message = document.getElementById("message");
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    fields.forEach(id => {
+      const field = document.getElementById(id);
+      if (field.type === "checkbox" && typeof saved[id] === "boolean") {
+        field.checked = saved[id];
+      } else if (field.type !== "checkbox" && typeof saved[id] === "string") {
+        field.value = saved[id];
+      }
+    });
+  } catch {
+    message.textContent = "Les préférences enregistrées n’ont pas pu être chargées.";
+  }
+
+  document.getElementById("settings").addEventListener("submit", event => {
+    event.preventDefault();
+    const preferences = {};
+    fields.forEach(id => {
+      const field = document.getElementById(id);
+      preferences[id] = field.type === "checkbox"
+        ? field.checked
+        : field.value;
+    });
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(preferences));
+      message.textContent =
+        "Préférences enregistrées ici. L’automatisation reste inactive.";
+    } catch {
+      message.textContent =
+        "Enregistrement impossible : vérifie les autorisations du navigateur.";
+    }
+  });
+</script>
+</body>
+</html>
